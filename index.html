@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#fdeccf">
+<title>まいにち なるほど クイズ</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💡</text></svg>">
+<style>
+  :root{
+    --ink:#3a3040;
+    --paper:#fffaf0;
+    --ground:#fdeccf;
+    --brand:#f08a3c;
+    --ok:#3fb56b;
+    --ng:#e65a6e;
+    --line:#f1d7b4;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; min-height:100vh;
+    background:var(--ground); color:var(--ink);
+    font-family:"UD デジタル教科書体 NK-R","UD デジタル教科書体 N-R","BIZ UDPGothic",
+                "Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif;
+    word-break:keep-all; overflow-wrap:anywhere; /* わかちがきの すきまで だけ かいぎょう */
+    padding-bottom:env(safe-area-inset-bottom, 0px);
+  }
+  button{ font:inherit; cursor:pointer; color:inherit; touch-action:manipulation; }
+  button:focus-visible{ outline:3px solid #3a3040; outline-offset:2px; }
+  .wrap{ max-width:760px; margin:0 auto; padding:0 16px; }
+
+  /* ================= あたま ================= */
+  .top{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding-top:max(14px, env(safe-area-inset-top, 0px)); }
+  .top h1{ flex:1; margin:0; font-size:22px; letter-spacing:.08em; }
+  .top h1 small{ display:block; font-size:12px; color:#9a7b5f; letter-spacing:.1em; }
+  .stamp{ background:#fff; border-radius:999px; padding:6px 14px; font-size:15px; font-weight:700; color:#a0602a; }
+
+  .datebar{ display:flex; align-items:center; justify-content:center; gap:14px; margin-top:12px; }
+  .arrow{
+    width:48px; height:48px; border-radius:50%; border:none; flex:none;
+    background:#fff; color:var(--brand); font-size:22px; font-weight:700;
+    box-shadow:0 3px 0 #e9c89a;
+  }
+  .arrow:active{ transform:translateY(2px); box-shadow:0 1px 0 #e9c89a; }
+  .date{ text-align:center; min-width:210px; }
+  .date .yr{ font-size:12px; color:#9a7b5f; }
+  .date .md{ font-size:30px; font-weight:700; letter-spacing:.06em; }
+  .date .wd{ font-size:14px; color:#9a7b5f; }
+  .badge{
+    display:inline-block; font-size:12px; color:#fff; background:var(--brand);
+    border-radius:999px; padding:1px 9px; margin-left:6px; vertical-align:middle; letter-spacing:0;
+  }
+
+  .tools{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:10px; }
+  .pill{
+    border:2px solid var(--brand); background:#fff; color:var(--brand);
+    border-radius:999px; padding:6px 14px; font-size:14px; font-weight:700;
+  }
+  .pill.on{ background:var(--brand); color:#fff; }
+
+  /* 10もんの すすみぐあい */
+  .dots{ display:flex; gap:6px; justify-content:center; margin:14px 0 0; flex-wrap:wrap; }
+  .dots button{
+    width:26px; height:26px; border-radius:50%; border:none; padding:0;
+    background:#f3d2a8; color:#8a6a4d; font-size:12px; font-weight:700;
+  }
+  .dots button.now{ outline:3px solid var(--brand); outline-offset:1px; background:#fff; }
+  .dots button.ok{ background:var(--ok); color:#fff; }
+  .dots button.ng{ background:var(--ng); color:#fff; }
+
+  /* ================= もんだい カード ================= */
+  .card{
+    margin:12px auto 30px; padding:24px 28px 30px;
+    background:var(--paper); border-radius:28px;
+    box-shadow:0 8px 0 #e9c89a, 0 12px 30px rgba(120,80,30,.15);
+  }
+  .meta{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .no{ font-size:14px; color:#9a7b5f; letter-spacing:.08em; }
+  .tag{
+    font-size:14px; font-weight:700; color:#fff;
+    padding:3px 12px; border-radius:999px; background:var(--cat,#f08a3c);
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  .speak{
+    margin-left:auto; border:none; background:#fff3e3; border-radius:999px;
+    padding:6px 12px; font-size:15px; color:#a0602a;
+  }
+  .emoji{ font-size:84px; text-align:center; line-height:1.2; margin:8px 0 4px; }
+  .q{ font-size:27px; line-height:1.7; text-align:center; margin:0 0 20px; font-weight:700; text-wrap:balance; }
+
+  .choices{ display:grid; gap:12px; }
+  .choice{
+    display:flex; align-items:center; gap:14px;
+    width:100%; text-align:left; color:var(--ink);
+    font-size:23px; padding:14px 18px;
+    background:#fff; border:3px solid var(--line); border-radius:18px;
+    transition:transform .08s;
+  }
+  .choice:hover:not(:disabled){ transform:translateY(-2px); border-color:var(--brand); }
+  .choice .mk{
+    flex:none; width:40px; height:40px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--brand); color:#fff; font-weight:700; font-size:20px;
+  }
+  .choice:disabled{ cursor:default; opacity:.45; color:var(--ink); }
+  .choice.right{ opacity:1; border-color:var(--ok); background:#eafaef; }
+  .choice.right .mk{ background:var(--ok); }
+  .choice.wrong{ opacity:1; border-color:var(--ng); background:#fdecef; }
+  .choice.wrong .mk{ background:var(--ng); }
+
+  .result{ margin-top:22px; }
+  .judge{ text-align:center; font-size:34px; font-weight:700; margin:0 0 10px; }
+  .judge.ok{ color:var(--ok); }
+  .judge.ng{ color:var(--ng); }
+  .mame{
+    background:#fff; border:3px dashed #f3c48b; border-radius:18px;
+    padding:14px 18px; font-size:20px; line-height:1.85;
+  }
+  .mame b{ display:block; font-size:15px; color:#c47a33; letter-spacing:.1em; margin-bottom:4px; }
+  .next{
+    display:block; margin:20px auto 0; border:none;
+    background:var(--brand); color:#fff; font-size:22px; font-weight:700;
+    padding:12px 38px; border-radius:999px; box-shadow:0 5px 0 #c96a24;
+  }
+  .next:active{ transform:translateY(3px); box-shadow:0 2px 0 #c96a24; }
+  .next.sub{ background:#fff; color:var(--brand); box-shadow:0 5px 0 #e9c89a; border:2px solid var(--brand); font-size:18px; padding:10px 28px; }
+
+  /* 1にちの けっか */
+  .sum{ text-align:center; }
+  .sum .big{ font-size:84px; line-height:1.1; margin:4px 0; }
+  .sum .score{ font-size:30px; font-weight:700; margin:4px 0; }
+  .sum .sub{ font-size:17px; color:#8a6a4d; margin:0 0 14px; }
+  .list{ list-style:none; margin:0; padding:0; display:grid; gap:8px; text-align:left; }
+  .list button{
+    width:100%; display:flex; align-items:center; gap:12px; text-align:left;
+    background:#fff; border:2px solid var(--line); border-radius:14px; padding:10px 14px; font-size:16px; line-height:1.5;
+  }
+  .list .mark{ flex:none; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; }
+  .list .mark.ok{ background:var(--ok); }
+  .list .mark.ng{ background:var(--ng); }
+  .list .mark.yet{ background:#cdb89c; }
+  .btnrow{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+
+  /* ================= カレンダー ================= */
+  .cal{ margin:14px auto 30px; background:var(--paper); border-radius:28px; padding:20px; box-shadow:0 8px 0 #e9c89a; }
+  .cal h2{ margin:0 0 6px; text-align:center; font-size:20px; color:#a0602a; }
+  .legend{ font-size:13px; color:#8a6a4d; text-align:center; margin:0 0 14px; line-height:2; }
+  .legend i{ display:inline-block; width:13px; height:13px; border-radius:4px; vertical-align:-2px; margin:0 3px 0 10px; }
+  .months{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:14px; }
+  .month h3{ margin:0 0 6px; font-size:16px; color:#a0602a; }
+  .days{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+  .days span{ aspect-ratio:1; }
+  .days button{
+    aspect-ratio:1; border:none; border-radius:8px; background:#fff;
+    font-size:13px; padding:0; color:var(--ink); font-variant-numeric:tabular-nums;
+  }
+  .days button.g3{ background:#2f9a57; color:#fff; }
+  .days button.g2{ background:#8fd6a5; }
+  .days button.g1{ background:#f7b3bd; }
+  .days button.part{ background:#fbe39a; }
+  .days button.today{ outline:3px solid var(--brand); outline-offset:-1px; font-weight:700; }
+  .days button.sel{ box-shadow:inset 0 0 0 2px #3a3040; }
+  .days button.sun{ color:#d94f4f; }
+  .days button.g3.sun{ color:#fff; }
+  .yearnav{ display:flex; justify-content:center; gap:10px; margin-bottom:10px; }
+
+  /* ================= スマホ ================= */
+  @media (max-width:560px){
+    .top h1{ font-size:18px; }
+    .stamp{ font-size:13px; padding:5px 11px; }
+    .datebar{ gap:8px; }
+    .arrow{ width:44px; height:44px; font-size:19px; }
+    .date{ min-width:0; flex:1; }
+    .date .md{ font-size:24px; }
+    .pill{ font-size:13px; padding:6px 11px; }
+    .dots{ gap:5px; }
+    .dots button{ width:24px; height:24px; }
+    .card{ padding:18px 16px 22px; border-radius:22px; }
+    .emoji{ font-size:62px; margin:6px 0 2px; }
+    .q{ font-size:21px; margin-bottom:16px; }
+    .choices{ gap:10px; }
+    .choice{ font-size:18px; padding:12px 14px; gap:10px; border-radius:16px; }
+    .choice .mk{ width:34px; height:34px; font-size:17px; }
+    .judge{ font-size:27px; }
+    .mame{ font-size:17px; padding:12px 14px; }
+    .next{ font-size:18px; padding:12px 28px; }
+    .cal{ padding:14px 12px; border-radius:22px; }
+    .months{ grid-template-columns:1fr; gap:16px; }
+    .days button{ font-size:15px; }
+  }
+
+  dialog{ border:none; border-radius:20px; padding:22px 24px; box-shadow:0 10px 40px rgba(0,0,0,.25); max-width:calc(100% - 32px); }
+  dialog h2{ margin:0 0 14px; font-size:18px; }
+  dialog .row{ display:grid; gap:10px; }
+  dialog .pill{ font-size:16px; padding:10px 16px; }
+
+  /* ================= いんさつ（がめんでは かくす） ================= */
+  .print{ display:none; }
+  @media print{
+    @page{ size:A4 portrait; margin:10mm; }
+    body{ background:#fff; }
+    .screen{ display:none !important; }
+    .print{ display:block; }
+    .page{ height:276mm; display:grid; grid-template-rows:1fr 1fr; gap:6mm; page-break-after:always; }
+    .page:last-child{ page-break-after:auto; }
+    .page *{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .pblock{ display:flex; flex-direction:column; border:3px solid var(--cat); border-radius:6mm; padding:5mm 7mm; overflow:hidden; }
+    .pq{ flex:1; }
+    .pq .meta{ margin-bottom:2mm; }
+    .pq .pdate{ font-size:15px; font-weight:700; }
+    .pq .head{ display:flex; align-items:center; gap:4mm; margin:1mm 0 3mm; }
+    .pq .pe{ font-size:40px; line-height:1; }
+    .pq .pqq{ font-size:19px; font-weight:700; line-height:1.6; margin:0; }
+    .pq ol{ list-style:none; margin:0; padding:0; display:grid; gap:2.5mm; }
+    .pq li{ display:flex; align-items:center; gap:3mm; font-size:16px; border:2px solid #e8d6bd; border-radius:4mm; padding:2mm 4mm; }
+    .pq li .mk{ width:24px; height:24px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center; background:var(--cat); color:#fff; font-weight:700; font-size:13px; }
+    .fold{ text-align:center; font-size:10px; color:#9a8a78; border-top:2px dashed #bfae98; margin:3mm 0 2mm; padding-top:1mm; }
+    .pa{ transform:rotate(180deg); font-size:13px; line-height:1.7; }
+    .pa b{ color:var(--cat); }
+  }
+</style>
+</head>
+<body>
+
+<div class="screen">
+  <div class="wrap">
+    <div class="top">
+      <h1><small>1にち 10もん</small>まいにち なるほど クイズ</h1>
+      <span class="stamp" id="stamp"></span>
+    </div>
+
+    <div class="datebar">
+      <button class="arrow" id="prevDay" aria-label="まえの ひ">◀</button>
+      <div class="date"><div class="yr" id="yr"></div><div class="md" id="md"></div><div class="wd" id="wd"></div></div>
+      <button class="arrow" id="nextDay" aria-label="つぎの ひ">▶</button>
+    </div>
+
+    <div class="tools">
+      <button class="pill" id="goToday">きょう</button>
+      <button class="pill" id="calBtn">📅 カレンダー</button>
+      <button class="pill" id="printBtn">🖨 いんさつ</button>
+    </div>
+
+    <div class="dots" id="dots"></div>
+    <main class="card" id="card"></main>
+    <section class="cal" id="cal" hidden></section>
+  </div>
+</div>
+
+<dialog id="printDlg">
+  <h2>🖨 いんさつ</h2>
+  <div class="row">
+    <button class="pill" id="printQ"></button>
+    <button class="pill" id="printCancel">やめる</button>
+  </div>
+</dialog>
+
+<div class="print" id="print"></div>
+
+<!-- もんだいデータ：data フォルダの ファイルが addQuiz() で ALL に たしこむ -->
+<script>
+  const ALL = [];
+  function addQuiz(cat, list){ list.forEach(q => ALL.push({ cat, ...q })); }
+</script>
+<script src="data/1_ikimono.js"></script>
+<script src="data/2_shizen.js"></script>
+<script src="data/3_karada_tabemono.js"></script>
+<script src="data/4_kotoba.js"></script>
+<script src="data/5_kurashi_norimono_sekai_kazu.js"></script>
+<script src="data/6_gyouji.js"></script>
+<script src="data/7_pokemon.js"></script>
+<script src="data/8_eiga_anime.js"></script>
+<script src="data/11_ikimono2.js"></script>
+<script src="data/12_shizen_karada2.js"></script>
+<script src="data/13_tabemono_kotoba2.js"></script>
+<script src="data/14_kurashi_etc2.js"></script>
+<script src="data/15_gyouji2.js"></script>
+<script src="data/16_chara2.js"></script>
+
+<script>
+/* ============================================================
+   せってい
+   ============================================================ */
+const PER_DAY = 10;
+const CATS = {
+  "いきもの":"#4bb96b", "しぜん":"#3d8fe8", "からだ":"#e8586b", "たべもの":"#e8862f",
+  "ことば":"#d94fa0", "くらし":"#8b6ee8", "のりもの":"#1fa5b8", "せかい":"#a07a4a",
+  "かず・かたち":"#c9a000", "ぎょうじ":"#e0533a", "ポケモン":"#e6a800", "えいが":"#4a74d9",
+  "アニメ・ゲーム":"#2fae8f",
+};
+const WEEK = ["にちようび","げつようび","かようび","すいようび","もくようび","きんようび","どようび"];
+const MARKS = ["1","2","3"];
+
+/* ============================================================
+   ひづけ → その ひの 10もん
+   ・d:"がつ-にち" が ある もんだいは、まいとし その ひの 1もんめに でる
+   ・ほかは ジャンルが まざる じゅんばんに ならべて、1にち 10もんずつ じゅんに だす
+     （もんだいが およそ 950もん なので、おなじ もんだいは 95にちに 1かい くらい）
+   ============================================================ */
+const PINNED = {}, POOL = (() => {
+  const groups = {};
+  ALL.forEach(q => q.d ? (PINNED[q.d] = q) : (groups[q.cat] ||= []).push(q));
+  const spread = [];
+  Object.keys(groups).forEach((g, gi) =>
+    groups[g].forEach((q, i) => spread.push({ q, pos:(i + 0.5) / groups[g].length, gi })));
+  spread.sort((a, b) => a.pos - b.pos || a.gi - b.gi);
+  return spread.map(x => x.q);
+})();
+
+const EPOCH = Date.UTC(2026, 0, 1);
+const dayNum = dt => Math.round((Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate()) - EPOCH) / 864e5);
+const keyOf = dt => `${dt.getFullYear()}-${dt.getMonth() + 1}-${dt.getDate()}`;
+const addDays = (dt, n) => new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + n);
+
+function setFor(dt){
+  const N = POOL.length, start = (((dayNum(dt) * PER_DAY) % N) + N) % N;
+  const rot = Array.from({ length:PER_DAY }, (_, i) => POOL[(start + i) % N]);
+  const p = PINNED[`${dt.getMonth() + 1}-${dt.getDate()}`];
+  return p ? [p, ...rot.slice(0, PER_DAY - 1)] : rot;
+}
+
+/* せんたくしの ならびかえ（ひと もんだいごとに きまった じゅんばん） */
+function rng(seed){
+  return () => {
+    seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function choicesOf(dt, i){
+  const q = setFor(dt)[i], r = rng(dayNum(dt) * 97 + i * 13 + 7);
+  const arr = q.c.map((t, j) => ({ t, ok: j === 0 }));   // データでは c[0] が せいかい
+  for (let j = arr.length - 1; j > 0; j--) { const k = Math.floor(r() * (j + 1)); [arr[j], arr[k]] = [arr[k], arr[j]]; }
+  if (arr.every(x => /^\d/.test(x.t))) arr.sort((a, b) => parseFloat(a.t) - parseFloat(b.t)); // かずは ちいさい じゅん
+  return arr;
+}
+
+/* ============================================================
+   きろく（この ブラウザに だけ のこる）
+   rec["2026-9-21"] = [ {p:えらんだ ばんごう, ok:1|0} か null を 10こ ]
+   ============================================================ */
+const STORE = "naruhodo-v2";
+let rec = {};
+try { rec = JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { rec = {}; }
+function saveRec(){ try { localStorage.setItem(STORE, JSON.stringify(rec)); } catch (e) {} }
+const dayRec = dt => rec[keyOf(dt)] || [];
+const okCount = arr => arr.filter(x => x && x.ok).length;
+const doneCount = arr => arr.filter(Boolean).length;
+
+/* ============================================================
+   よみあげ
+   ============================================================ */
+function speak(text){
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "ja-JP"; u.rate = 0.9;
+    const v = speechSynthesis.getVoices().find(v => v.lang.startsWith("ja"));
+    if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+/* ============================================================
+   がめん
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const now = new Date();
+const TODAY = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+let cur = TODAY, qi = 0, view = "q", calYear = TODAY.getFullYear();
+
+const mdLabel = dt => `${dt.getMonth() + 1}がつ ${dt.getDate()}にち`;
+const sameDay = (a, b) => keyOf(a) === keyOf(b);
+
+function drawHeader(){
+  $("yr").textContent = cur.getFullYear() !== TODAY.getFullYear() ? `${cur.getFullYear()}ねん` : "";
+  $("md").innerHTML = mdLabel(cur) + (sameDay(cur, TODAY) ? '<span class="badge">きょう</span>' : "");
+  $("wd").textContent = WEEK[cur.getDay()];
+  const total = Object.values(rec).reduce((s, a) => s + okCount(a), 0);
+  $("stamp").textContent = `🌟 せいかい ${total}もん`;
+}
+
+function drawDots(){
+  const r = dayRec(cur);
+  $("dots").hidden = view === "cal";
+  $("dots").innerHTML = Array.from({ length:PER_DAY }, (_, i) => {
+    const x = r[i];
+    const cls = x ? (x.ok ? "ok" : "ng") : (view === "q" && i === qi ? "now" : "");
+    return `<button class="${cls}" data-i="${i}" aria-label="${i + 1}もんめ">${i + 1}</button>`;
+  }).join("");
+  $("dots").querySelectorAll("button").forEach(b => b.onclick = () => { qi = Number(b.dataset.i); show("q"); });
+}
+
+function drawQuestion(){
+  const q = setFor(cur)[qi], ch = choicesOf(cur, qi), done = dayRec(cur)[qi];
+  const card = $("card");
+  card.style.setProperty("--cat", CATS[q.cat]);
+  card.innerHTML = `
+    <div class="meta">
+      <span class="tag">${q.cat}</span>
+      <span class="no">${qi + 1} / ${PER_DAY}もん</span>
+      <button class="speak" id="say">🔊 よんで</button>
+    </div>
+    <div class="emoji">${q.i}</div>
+    <p class="q">${q.q}</p>
+    <div class="choices">
+      ${ch.map((x, i) => `<button class="choice" data-i="${i}"><span class="mk">${MARKS[i]}</span>${x.t}</button>`).join("")}
+    </div>
+    <div class="result" id="result"></div>`;
+  $("say").onclick = () => speak(`${q.q}　${ch.map((x, i) => `${i + 1}ばん、${x.t}`).join("。")}`);
+  card.querySelectorAll(".choice").forEach(b => b.onclick = () => answer(Number(b.dataset.i)));
+  if (done) reveal(done.p, false);
+}
+
+function answer(pickI){
+  const ch = choicesOf(cur, qi);
+  const k = keyOf(cur);
+  rec[k] ||= Array(PER_DAY).fill(null);
+  rec[k][qi] = { p:pickI, ok: ch[pickI].ok ? 1 : 0 };
+  saveRec();
+  reveal(pickI, true);
+  drawHeader(); drawDots();
+}
+
+function reveal(pickI, fresh){
+  const q = setFor(cur)[qi], ch = choicesOf(cur, qi);
+  const rightI = ch.findIndex(x => x.ok), ok = pickI === rightI;
+  $("card").querySelectorAll(".choice").forEach(b => {
+    const i = Number(b.dataset.i);
+    b.disabled = true;
+    if (i === rightI) b.classList.add("right");
+    else if (i === pickI) b.classList.add("wrong");
+  });
+  const r = dayRec(cur);
+  const nextI = [...Array(PER_DAY).keys()].find(i => i > qi && !r[i]) ?? [...Array(PER_DAY).keys()].find(i => !r[i]);
+  const label = nextI === undefined ? "きょうの けっかを みる ▶" : "つぎの もんだい ▶";
+  $("result").innerHTML = `
+    <p class="judge ${ok ? "ok" : "ng"}">${ok ? "🎉 せいかい！" : "おしい！"}</p>
+    <div class="mame">
+      <b>こたえ：${MARKS[rightI]}ばん「${ch[rightI].t}」</b>
+      ${q.e}
+    </div>
+    <button class="next" id="goNext">${label}</button>`;
+  $("goNext").onclick = () => {
+    if (nextI === undefined) show("sum");
+    else { qi = nextI; show("q"); }
+  };
+  if (fresh) $("result").scrollIntoView({ behavior:"smooth", block:"nearest" });
+}
+
+function drawSummary(){
+  const set = setFor(cur), r = dayRec(cur), n = okCount(r);
+  const face = n === PER_DAY ? "👑" : n >= 8 ? "🌟" : n >= 5 ? "😊" : "🌱";
+  const card = $("card");
+  card.style.setProperty("--cat", "#f08a3c");
+  card.innerHTML = `
+    <div class="sum">
+      <div class="big">${face}</div>
+      <p class="score">${PER_DAY}もん ちゅう ${n}もん せいかい！</p>
+      <p class="sub">${n === PER_DAY ? "ぜんもん せいかい！ すごい！" : "もんだいを おすと、こたえを みなおせるよ。"}</p>
+      <ul class="list">
+        ${set.map((q, i) => {
+          const x = r[i], cls = x ? (x.ok ? "ok" : "ng") : "yet", mk = x ? (x.ok ? "○" : "×") : "？";
+          return `<li><button data-i="${i}"><span class="mark ${cls}">${mk}</span><span>${q.q}</span></button></li>`;
+        }).join("")}
+      </ul>
+      <div class="btnrow">
+        <button class="next" id="tomorrow">つぎの ひの 10もん ▶</button>
+        <button class="next sub" id="retry">もういちど ちょうせん</button>
+      </div>
+    </div>`;
+  card.querySelectorAll(".list button").forEach(b => b.onclick = () => { qi = Number(b.dataset.i); show("q"); });
+  $("tomorrow").onclick = () => go(addDays(cur, 1));
+  $("retry").onclick = () => { delete rec[keyOf(cur)]; saveRec(); qi = 0; show("q"); drawHeader(); };
+}
+
+function drawCal(){
+  const y = calYear;
+  let h = `<div class="yearnav">
+      <button class="pill" id="yPrev">◀ ${y - 1}</button><h2>${y}ねん</h2><button class="pill" id="yNext">${y + 1} ▶</button>
+    </div>
+    <p class="legend">
+      <i style="background:#2f9a57"></i>8もん いじょう
+      <i style="background:#8fd6a5"></i>5〜7もん
+      <i style="background:#f7b3bd"></i>4もん いか
+      <i style="background:#fbe39a"></i>とちゅう
+    </p><div class="months">`;
+  for (let m = 0; m < 12; m++) {
+    const first = new Date(y, m, 1), days = new Date(y, m + 1, 0).getDate();
+    h += `<div class="month"><h3>${m + 1}がつ</h3><div class="days">`;
+    for (let s = 0; s < first.getDay(); s++) h += "<span></span>";
+    for (let d = 1; d <= days; d++) {
+      const dt = new Date(y, m, d), r = dayRec(dt), dn = doneCount(r), ok = okCount(r);
+      const g = dn === PER_DAY ? (ok >= 8 ? "g3" : ok >= 5 ? "g2" : "g1") : dn > 0 ? "part" : "";
+      const cls = [g, sameDay(dt, TODAY) ? "today" : "", sameDay(dt, cur) ? "sel" : "", dt.getDay() === 0 ? "sun" : ""].join(" ");
+      const tip = dn ? `${mdLabel(dt)}：${dn}もん ちゅう ${ok}もん せいかい` : mdLabel(dt);
+      h += `<button class="${cls}" data-d="${y}-${m}-${d}" title="${tip}" aria-label="${tip}">${d}</button>`;
+    }
+    h += `</div></div>`;
+  }
+  $("cal").innerHTML = h + "</div>";
+  $("cal").querySelectorAll("[data-d]").forEach(b => b.onclick = () => {
+    const [yy, mm, dd] = b.dataset.d.split("-").map(Number);
+    go(new Date(yy, mm, dd));
+  });
+  $("yPrev").onclick = () => { calYear--; drawCal(); };
+  $("yNext").onclick = () => { calYear++; drawCal(); };
+}
+
+function show(v){
+  view = v;
+  $("card").hidden = v === "cal";
+  $("cal").hidden = v !== "cal";
+  $("calBtn").classList.toggle("on", v === "cal");
+  if (v === "q") drawQuestion();
+  if (v === "sum") drawSummary();
+  if (v === "cal") drawCal();
+  drawHeader(); drawDots();
+}
+
+/* ひを かえる：まだ といて いない さいしょの もんだいから。ぜんぶ おわって いたら けっか */
+function go(dt){
+  cur = dt;
+  const r = dayRec(cur), first = [...Array(PER_DAY).keys()].find(i => !r[i]);
+  if (first === undefined) { qi = 0; show("sum"); } else { qi = first; show("q"); }
+  window.scrollTo({ top:0 });
+}
+
+/* ============================================================
+   いんさつ：1ページに 2もん × 5ページ。したの こたえは さかさま
+   ============================================================ */
+function printDay(){
+  const set = setFor(cur);
+  const blocks = set.map((q, i) => {
+    const ch = choicesOf(cur, i), rightI = ch.findIndex(x => x.ok);
+    return `
+    <div class="pblock" style="--cat:${CATS[q.cat]}">
+      <div class="pq">
+        <div class="meta"><span class="pdate">${mdLabel(cur)}　${i + 1}もんめ</span><span class="tag">${q.cat}</span></div>
+        <div class="head"><span class="pe">${q.i}</span><p class="pqq">${q.q}</p></div>
+        <ol>${ch.map((x, j) => `<li><span class="mk">${MARKS[j]}</span>${x.t}</li>`).join("")}</ol>
+      </div>
+      <div class="fold">- - - ここで おって こたえを かくそう - - -</div>
+      <div class="pa"><b>こたえ：${MARKS[rightI]}ばん「${ch[rightI].t}」</b>　${q.e}</div>
+    </div>`;
+  });
+  let html = "";
+  for (let i = 0; i < blocks.length; i += 2) html += `<section class="page">${blocks[i]}${blocks[i + 1] || ""}</section>`;
+  $("print").innerHTML = html;
+  $("printDlg").close();
+  setTimeout(() => window.print(), 50);
+}
+$("printBtn").onclick = () => {
+  $("printQ").textContent = `${mdLabel(cur)}の 10もん（A4 5まい）`;
+  $("printDlg").showModal();
+};
+$("printQ").onclick = printDay;
+$("printCancel").onclick = () => $("printDlg").close();
+
+/* ============================================================
+   ボタン
+   ============================================================ */
+$("prevDay").onclick = () => go(addDays(cur, -1));
+$("nextDay").onclick = () => go(addDays(cur, 1));
+$("goToday").onclick = () => go(TODAY);
+$("calBtn").onclick = () => view === "cal" ? go(cur) : (calYear = cur.getFullYear(), show("cal"));
+document.addEventListener("keydown", e => {
+  if ($("printDlg").open) return;
+  if (e.key === "ArrowLeft") go(addDays(cur, -1));
+  if (e.key === "ArrowRight") go(addDays(cur, 1));
+});
+
+go(TODAY);
+</script>
+</body>
+</html>
